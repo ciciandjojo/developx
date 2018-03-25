@@ -51,3 +51,9 @@
    ```
    . venv/bin/activate && python manage.py runserver
    ```
+
+
+### Usage
+1. To upload a xlsx POST it to /upload as binary. Example file named `weather-entries-example.xlsx` is provided
+2. To download statistics access /statistics
+3. API root to view all saved entries is /api

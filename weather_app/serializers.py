@@ -11,6 +11,7 @@ class GeoPositionSerializer(serializers.ModelSerializer):
 
 
 class WeatherEntrySerializer(serializers.ModelSerializer):
+    geoposition = GeoPositionSerializer()
 
     class Meta:
         model = WeatherEntry
@@ -18,6 +19,7 @@ class WeatherEntrySerializer(serializers.ModelSerializer):
 
 
 class AverageStatsSerializer(serializers.ModelSerializer):
+    geoposition = GeoPositionSerializer()
 
     class Meta:
         model = AverageStats

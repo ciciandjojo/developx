@@ -1,6 +1,10 @@
+import csv
+import zipfile
+from StringIO import StringIO
 from io import BytesIO
 
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from openpyxl import load_workbook
 
@@ -45,15 +49,29 @@ def statistics(request):
         AverageStats.objects.filter(geoposition=geoposition).latest('datetime')
         for geoposition in geopositions
     ]
-    payload = [
-        {
-            'Coordinates': stat.geoposition.coordinates,
-            'Height': stat.geoposition.height,
-            'Average temperature': stat.avg_temperature,
-            'Average wind speed': stat.avg_wind_speed,
-            'Average wind vector': stat.avg_wind_vector,
-            'Last update': stat.datetime.strftime("%I:%M%p on %B %d, %Y")
-        } for stat in stats
-    ]
+    payload = [('Coordinates', 'Height', 'Average temperature',
+               'Average wind speed',  'Average wind vector', 'Last update')]
+    payload.extend([
+        (stat.geoposition.coordinates,
+         stat.geoposition.height,
+         stat.avg_temperature,
+         stat.avg_wind_speed,
+         stat.avg_wind_vector,
+         stat.datetime.strftime("%I:%M%p on %B %d, %Y")) for stat in stats
+    ])
 
-    return JsonResponse(payload, safe=False)
+    s_csv = StringIO()
+    s_zip = BytesIO()
+
+    csv.writer(s_csv, dialect='excel').writerows(payload)
+
+    with zipfile.ZipFile(s_zip, 'w', zipfile.ZIP_DEFLATED) as zip:
+        zip.writestr('weather-statistics.csv', s_csv.getvalue())
+
+    resp = HttpResponse(
+        s_zip.getvalue(),
+        content_type='application/x-zip-compressed'
+    )
+    resp['Content-Disposition'] = 'attachment; filename=weather-statistics.zip'
+
+    return resp
