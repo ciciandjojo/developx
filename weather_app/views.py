@@ -3,8 +3,9 @@ import zipfile
 from StringIO import StringIO
 from io import BytesIO
 
+from django.conf import settings
+from django.core.cache import cache
 from django.http import HttpResponse
-from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from openpyxl import load_workbook
 
@@ -43,14 +44,14 @@ def upload(request):
     return HttpResponse('Successfully uploaded %s entries!' % len(entries))
 
 
-def statistics(request):
+def calculate_statistics():
     geopositions = GeoPosition.objects.all()
     stats = [
         AverageStats.objects.filter(geoposition=geoposition).latest('datetime')
         for geoposition in geopositions
     ]
     payload = [('Coordinates', 'Height', 'Average temperature',
-               'Average wind speed',  'Average wind vector', 'Last update')]
+                'Average wind speed', 'Average wind vector', 'Last update')]
     payload.extend([
         (stat.geoposition.coordinates,
          stat.geoposition.height,
@@ -59,6 +60,16 @@ def statistics(request):
          stat.avg_wind_vector,
          stat.datetime.strftime("%I:%M%p on %B %d, %Y")) for stat in stats
     ])
+    cache.set(settings.UPDATE_WEATHER_STATISTICS_CACHE_KEY, payload,
+              timeout=settings.UPDATE_WEATHER_STATISTICS_TASK_PERIOD)
+
+    return payload
+
+
+def statistics(request):
+    payload = cache.get(settings.UPDATE_WEATHER_STATISTICS_CACHE_KEY)
+    if payload is None:
+        payload = calculate_statistics()
 
     s_csv = StringIO()
     s_zip = BytesIO()

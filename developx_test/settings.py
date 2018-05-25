@@ -159,6 +159,17 @@ LOGGING = {
 REDIS_URL = 'redis://localhost:6379/1'
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 
+# Cache settings
+
+CACHES = {
+    'default': {
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': REDIS_URL,
+    },
+}
+
+UPDATE_WEATHER_STATISTICS_CACHE_KEY = 'WEATHER_STATISTICS'
+UPDATE_WEATHER_STATISTICS_TASK_PERIOD = 60
 
 # Periodic tasks
 CELERY_BEAT_SCHEDULE = {
